@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#6f55c9">
+<title>Мои тренировки</title>
+<style>
+:root{--bg:#f6f4fb;--card:#fff;--ink:#26222f;--muted:#756f80;--accent:#7057c8;--line:#e6e0ef}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink)}
+header{padding:22px 18px 12px;background:linear-gradient(135deg,#765dc9,#9b7fe0);color:white;position:sticky;top:0;z-index:5}
+h1{font-size:24px;margin:0 0 3px}.date{opacity:.9;font-size:14px}
+main{max-width:760px;margin:auto;padding:14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:15px;margin-bottom:14px;box-shadow:0 3px 14px rgba(50,35,80,.05)}
+h2{font-size:18px;margin:0 0 12px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+label{font-size:12px;color:var(--muted);display:block}.field{width:100%;border:1px solid var(--line);border-radius:12px;padding:11px;font-size:16px;margin-top:4px;background:#fff}
+.workouts{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+button{border:0;border-radius:12px;padding:12px 10px;font-weight:650;background:#eee9f8;color:#463477;font-size:15px}
+button.primary{background:var(--accent);color:white}.workout-img{width:100%;border-radius:14px;display:block;margin-bottom:12px}.small{font-size:12px;color:var(--muted)}
+.exercise{border-top:1px solid var(--line);padding:13px 0}.exercise:first-child{border-top:0}.exercise h3{margin:0 0 8px;font-size:16px}
+.sets{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}.set{display:flex;flex-direction:column}
+.row{display:flex;gap:8px;align-items:center;justify-content:space-between}.row button{padding:8px 10px;font-size:13px}
+.hidden{display:none}.nav{display:flex;gap:8px;overflow:auto;margin-bottom:12px}.nav button{white-space:nowrap}
+.toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:#292332;color:white;padding:10px 14px;border-radius:12px;display:none;z-index:10}
+@media(min-width:600px){.grid{grid-template-columns:repeat(4,1fr)}}
+</style>
+</head>
+<body>
+<header>
+  <h1>Мои тренировки</h1>
+  <div class="date" id="today"></div>
+</header>
+<main>
+  <div class="nav">
+    <button class="primary" onclick="show('day')">📅 Сегодня</button>
+    <button onclick="show('workouts')">🏋️ Тренировки</button>
+    <button onclick="show('history')">📈 История</button>
+    <button onclick="show('base')">🗂️ База</button>
+  </div>
+
+  <section id="day">
+    <div class="card">
+      <h2>Дневник дня</h2>
+      <div class="grid">
+        <div><label>Вес, кг</label><input id="weight" class="field" type="number" step="0.1"></div>
+        <div><label>Шаги</label><input id="steps" class="field" type="number"></div>
+        <div><label>Съедено, ккал</label><input id="eaten" class="field" type="number"></div>
+        <div><label>Потрачено, ккал</label><input id="burned" class="field" type="number"></div>
+        <div><label>Белки, г</label><input id="protein" class="field" type="number"></div>
+        <div><label>Жиры, г</label><input id="fat" class="field" type="number"></div>
+        <div><label>Углеводы, г</label><input id="carbs" class="field" type="number"></div>
+      </div>
+      <button class="primary" style="margin-top:12px;width:100%" onclick="saveDay()">Сохранить дневник</button>
+    </div>
+
+    <div class="card">
+      <h2>Тренировка сегодня</h2>
+      <div class="workouts" id="dayWorkoutButtons"></div>
+      <div id="chosenWorkout" class="small" style="margin-top:10px">Тренировка не выбрана.</div>
+    </div>
+  </section>
+
+  <section id="workouts" class="hidden">
+    <div class="card">
+      <h2>Мои программы</h2>
+      <div class="workouts" id="workoutButtons"></div>
+    </div>
+    <div id="workoutView"></div>
+  </section>
+
+  <section id="history" class="hidden">
+    <div class="card"><h2>История</h2><div id="historyList"></div></div>
+  </section>
+
+  <section id="base" class="hidden">
+    <div class="card">
+      <h2>База упражнений</h2>
+      <div class="workouts">
+        <button onclick="alert('База: пресс. Здесь будут упражнения на полу, стоя, на прямой скамье и на брусьях.')">Пресс</button>
+        <button onclick="alert('База: верх тела. Только упражнения с домашним инвентарём: штанга, прямая скамья, брусья, большие резинки.')">Верх тела</button>
+        <button onclick="alert('База: низ тела. Только упражнения с домашним инвентарём и собственным весом.')">Низ тела</button>
+      </div>
+      <p class="small">В следующей версии здесь добавим полноценный каталог с картинками и цепочками прогрессии.</p>
+    </div>
+  </section>
+</main>
+<div class="toast" id="toast"></div>
+
+<script>
+const workouts = {
+ "Низ A": {img:"низ-a.jpg", ex:[
+  ["Приседания",3],["Румынская тяга",3],["Ягодичный мост",3],["Зашагивания",3],["Махи ногой в сторону",3]
+ ]},
+ "Низ B": {img:"низ-b.jpg", ex:[
+  ["Приседания от скамьи",3],["Зашагивания на скамью",3],["Ягодичный мост на скамью",3],["Румынская тяга со штангой",3],["Махи ногой в сторону",3]
+ ]},
+ "Верх A": {img:"верх-a.jpg", ex:[
+  ["Тяга",3],["Жим",3],["Разведения",3],["Упражнение на спину",3],["Бицепс",3],["Трицепс",3]
+ ]},
+ "Верх B": {img:"верх-b.jpg", ex:[
+  ["Тяга",3],["Жим",3],["Плечи",3],["Спина",3],["Руки",3]
+ ]},
+ "Пресс A": {img:"пресс-a.jpg", ex:[
+  ["Скручивания с ногами на скамье",3],["Dead Bug",3],["Подъём колена к груди стоя",3],["Русские повороты с гантелью",3]
+ ]},
+ "Пресс B": {img:"пресс-b.jpg", ex:[
+  ["Боковая планка с подъёмом ноги",3],["Обратные скручивания",3],["Альпинист",3],["Подъём согнутых коленей на брусьях",3]
+ ]}
+};
+
+function key(){return new Date().toISOString().slice(0,10)}
+function load(){return JSON.parse(localStorage.getItem("fitnessData")||"{}")}
+function save(d){localStorage.setItem("fitnessData",JSON.stringify(d))}
+function toast(t){let x=document.getElementById("toast");x.textContent=t;x.style.display="block";setTimeout(()=>x.style.display="none",1300)}
+function dateRu(){return new Intl.DateTimeFormat("ru-RU",{weekday:"long",day:"numeric",month:"long",year:"numeric"}).format(new Date())}
+document.getElementById("today").textContent=dateRu();
+
+function renderButtons(){
+ const a=document.getElementById("workoutButtons"),b=document.getElementById("dayWorkoutButtons");
+ a.innerHTML=b.innerHTML="";
+ Object.keys(workouts).forEach(n=>{
+   const btn=document.createElement("button");btn.textContent=n;btn.onclick=()=>openWorkout(n);
+   a.appendChild(btn);
+   const btn2=btn.cloneNode(true);btn2.onclick=()=>openWorkout(n);b.appendChild(btn2);
+ });
+}
+function show(id){
+ ["day","workouts","history","base"].forEach(x=>document.getElementById(x).classList.toggle("hidden",x!==id));
+ if(id==="history") renderHistory();
+}
+function openWorkout(name){
+ show("workouts");
+ const w=workouts[name], d=load(), saved=d.workouts?.[name];
+ document.getElementById("workoutView").innerHTML=`
+ <div class="card">
+  <div class="row"><h2>${name}</h2><button class="primary" onclick="saveWorkout('${name}')">Сохранить</button></div>
+  <div class="small">Последняя сохранённая версия: ${saved?.date||"нет данных"}</div>
+  <img class="workout-img" src="${w.img}" alt="${name}">
+  <div id="exercises"></div>
+ </div>`;
+ const box=document.getElementById("exercises");
+ w.ex.forEach((e,i)=>{
+   const old=saved?.ex?.[i]||{};
+   const div=document.createElement("div");div.className="exercise";
+   div.innerHTML=`<h3>${i+1}. ${e[0]}</h3>
+   <div class="grid">
+    <div><label>Вес, кг</label><input class="field exw" type="number" step="0.1" value="${old.weight??""}"></div>
+   </div>
+   <div class="sets" style="margin-top:8px">
+    ${[0,1,2].map(j=>`<div class="set"><label>Подход ${j+1}</label><input class="field exr" type="number" value="${old.reps?.[j]??""}"></div>`).join("")}
+   </div>`;
+   box.appendChild(div);
+ });
+}
+function saveWorkout(name){
+ const root=document.getElementById("workoutView"), ex=[];
+ root.querySelectorAll(".exercise").forEach(div=>{
+   ex.push({weight:div.querySelector(".exw").value,reps:[...div.querySelectorAll(".exr")].map(x=>x.value)});
+ });
+ const d=load();d.workouts=d.workouts||{};d.workouts[name]={date:key(),ex};d.todayWorkout=name;save(d);
+ document.getElementById("chosenWorkout").textContent="Сегодня выбрана: "+name;
+ toast("Тренировка сохранена");
+}
+function saveDay(){
+ const d=load();d.days=d.days||{};d.days[key()]={weight:v("weight"),steps:v("steps"),eaten:v("eaten"),burned:v("burned"),protein:v("protein"),fat:v("fat"),carbs:v("carbs"),workout:d.todayWorkout||""};save(d);toast("Дневник сохранён");
+}
+function v(id){return document.getElementById(id).value}
+function loadToday(){
+ const d=load(),x=d.days?.[key()]||{};
+ ["weight","steps","eaten","burned","protein","fat","carbs"].forEach(id=>document.getElementById(id).value=x[id]??"");
+ if(x.workout){d.todayWorkout=x.workout;save(d)}
+ document.getElementById("chosenWorkout").textContent=x.workout?"Сегодня выбрана: "+x.workout:"Тренировка не выбрана.";
+}
+function renderHistory(){
+ const d=load(), days=Object.entries(d.days||{}).sort((a,b)=>b[0].localeCompare(a[0]));
+ document.getElementById("historyList").innerHTML=days.length?days.map(([date,x])=>`
+ <div class="exercise"><b>${date}</b><br>
+ Вес: ${x.weight||"—"} кг · Шаги: ${x.steps||"—"}<br>
+ Ккал: ${x.eaten||"—"} / ${x.burned||"—"} · Б/Ж/У: ${x.protein||"—"} / ${x.fat||"—"} / ${x.carbs||"—"}<br>
+ Тренировка: ${x.workout||"—"}</div>`).join(""):"Пока нет сохранённых дней.";
+}
+renderButtons();loadToday();
+</script>
+</body>
+</html>
